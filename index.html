@@ -225,6 +225,11 @@ function openApt(n){const a=apts.find(x=>x.n===n);if(!a)return;const s=st(a);
  $('#modal').innerHTML=`<div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"><div class="${C} w-full max-w-xl p-6 relative">
  <button onclick="$('#modal').innerHTML=''" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
  <h2 class="text-lg font-bold mb-4">Квартира №${a.n} (${FL(a.fl)}, ${a.rooms} комн, ${a.area} м²)</h2>
+function openApt(n){
+ const a=apts.find(x=>x.n===n);if(!a)return;const s=st(a);
+ $('#modal').innerHTML=`<div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"><div class="${C} w-full max-w-xl p-6 relative">
+ <button onclick="$('#modal').innerHTML=''" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+ <h2 class="text-lg font-bold mb-4">Квартира №${a.n} (${FL(a.fl)}, ${a.rooms} комн, ${a.area} м²)</h2>
  <div class="space-y-3">
   <div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-slate-400">Цена за 1 м² ($)</label><input id="m_ppm" type="number" class="${IN}" value="${a.ppm}" ${canEdit()?'':'disabled'}></div><div><label class="text-xs text-slate-400">Статус</label><div class="py-2">${badge(s)}</div></div></div>
   <div><label class="text-xs text-slate-400">ФИО Покупателя</label><input id="m_name" class="${IN}" value="${esc(a.name)}" ${canEdit()?'':'disabled'}></div>
@@ -234,7 +239,8 @@ function openApt(n){const a=apts.find(x=>x.n===n);if(!a)return;const s=st(a);
   ${s==='inst'&&can('pay')?`<div class="border-t border-slate-800 pt-3 mt-3"><h4 class="font-semibold text-sm mb-2">Принять платеж</h4><div class="flex gap-2"><input id="p_amt" type="number" class="${IN}" placeholder="Сумма в USD"><button onclick="doPay(${a.n})" class="${BTN}">Внести</button></div></div>`:''}
   <div class="flex justify-between items-center pt-2"><div class="flex gap-2">${a.name&&can('print')?`<button onclick="printSched(${a.n})" class="bg-slate-800 hover:bg-slate-700 rounded-xl px-3 py-2 text-xs"><i class="fa-solid fa-calendar-days mr-1"></i> График</button><button onclick="printContract(${a.n})" class="bg-slate-800 hover:bg-slate-700 rounded-xl px-3 py-2 text-xs"><i class="fa-solid fa-file-contract mr-1"></i> Договор</button>`:''}</div>
   <div class="flex gap-2">${canEdit()?`<button class="${BTN}" onclick="saveApt(${a.n})">Сохранить</button>`:''}</div></div>
- </div></div></div>`}
+ </div></div></div>`;
+}
 
 function saveApt(n){const a=apts.find(x=>x.n===n);if(!a)return;
  a.ppm=parseFloat($('#m_ppm').value)||a.ppm;a.name=$('#m_name').value.trim();a.phone=$('#m_phone').value.trim();
