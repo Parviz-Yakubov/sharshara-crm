@@ -12,7 +12,16 @@ table.rt thead{display:none}table.rt,table.rt tbody{display:block}table.rt tr{di
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen"><div id="app"></div><div id="modal"></div><div id="modal2"></div>
 <script>
-const LS='shs_',$=s=>document.querySelector(s);
+const firebaseConfig = {
+  apiKey: "AIzaSyAi4ohDLCDdsoMLitwLYRdCO5YtUAMH11I",
+  authDomain: "sharshara-srm.firebaseapp.com",
+  databaseURL: "https://sharshara-srm-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "sharshara-srm",
+  storageBucket: "sharshara-srm.firebasestorage.app",
+  messagingSenderId: "666107434638",
+  appId: "1:666107434638:web:63d8225ded595534409bdf",
+  measurementId: "G-P90C6Q0QC0"
+};const LS='shs_',$=s=>document.querySelector(s);
 const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(LS+k));return v??d}catch{return d}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // ---------- данные ----------
