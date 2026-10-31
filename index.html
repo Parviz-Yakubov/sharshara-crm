@@ -100,7 +100,7 @@ ru:`# ДОГОВОР № {{номер_договора}}
 4.2. Договор составлен в двух экземплярах, имеющих одинаковую юридическую силу, по одному для каждой стороны.
 4.3. Изменения и дополнения действительны только в письменной форме и при наличии подписей обеих сторон.`}}
 const TX={tg:{t:'Ҷадвали пардохти ақсот',ap:'Замима № 1 ба шартномаи № ',obj:'Манзил',rm:'ҳуҷра',buyer:'Харидор',sd:'Санаи имзои шартнома',prel:' (пешакӣ — шартнома ҳанӯз имзо нашудааст)',cost:'Арзиши манзил',down:'Пардохти аввалия',term:'Мӯҳлат / пардохти моҳона',mo:'моҳ',until:'то рӯзи',ofm:'-уми ҳар моҳ',paid:'Пардохтшуда ба санаи чоп',rest:'бақия',no:'№',date:'Санаи пардохт',amt:'Маблағ',bal:'Бақияи қарз',mark:'Аломат дар бораи пардохт',first:'Пардохти аввалия',seller:'Фурӯшанда',buy:'Харидор',sig:'Имзо',mp:'Ҷойи мӯҳр',dt:'Сана',pass:'Шиносномаи №',pd:'Санаи чоп',cur:'Маблағҳо бо сомонӣ (c.) бо қурби 1 USD = '},
-ru:{t:'График платежей по договору рассрочки',ap:'Приложение № 1 к договору № ',obj:'Квартира',rm:'комн.',buyer:'Покупатель',sd:'Дата подписания договора',prel:' (предварительно — договор ещё не подписан)',cost:'Стоимость квартиры',down:'Первоначальный взнос',term:'Срок / ежемесячный взнос',mo:'мес.',until:'платёж до',ofm:' числа',paid:'Оплачено на дату печати',rest:'остаток',no:'№',date:'Дата платежа',amt:'Сумма',bal:'Остаток по договору',mark:'Отметка об оплате',first:'Первый взнос',seller:'Продавец (Застройщик)',buy:'Покупатель',sig:'Подпись',mp:'М.П.',dt:'Дата',pass:'Паспорт №',pd:'Дата печати',cur:'Суммы указаны в сомони (c.) по курсу 1 USD = '}};
+ru:{t:'График платежей по договору рассрочки',ap:'Приложение № 1 к договору № ',obj:'Квартира',rm:'комн.',buyer:'Покупатель',sd:'Дата подписания договора',prel:' (предварительно — договор ещё не подписан)',cost:'Стоимость квартиры',down:'Первоначальный взнос',term:'Срок / ежемесячный взнос',срок:'Срок / ежемесячный взнос',mo:'мес.',until:'платёж до',ofm:' числа',paid:'Оплачено на дату печати',rest:'остаток',no:'№',date:'Дата платежа',amt:'Сумма',bal:'Остаток по договору',mark:'Отметка об оплате',first:'Первый взнос',seller:'Продавец (Застройщик)',buy:'Покупатель',sig:'Подпись',mp:'М.П.',dt:'Дата',pass:'Паспорт №',pd:'Дата печати',cur:'Суммы указаны в сомони (c.) по курсу 1 USD = '}};
 function fillTpl(t,a,b,L,lang){const F=lang==='tg'?(f=>f<0?'таҳхона':'ошёнаи '+f):FL,last=L[L.length-1],V={'номер_договора':a.n+'/'+new Date(b.start+'T00:00:00').getFullYear(),'номер':a.n,'жк':S.project,'компания':S.company,'этаж':F(a.fl),'комнат':a.rooms,'площадь':a.area,'покупатель':a.name,'телефон':a.phone,'стоимость':fm(total(a)),'цена_м2':fm(a.ppm),'взнос':fm(a.down),'остаток_договора':fm(total(a)-a.down),'срок':a.term,'ежемесячно':fm(monthly(a)),'день':a.day,'дата':fd(b.start),'дата_последнего':last?fd(last.d):'—','представитель':(me.pos?me.pos+' ':'')+me.name};
  return esc(t).replace(/\{\{([^}]+)\}\}/g,(m,k)=>k in V?esc(V[k]):m)}
 function printDoc(n,full){if(!can('print'))return;const a=apts.find(x=>x.n===n),lang=($('#pl')&&$('#pl').value)||S.pl||'tg',X=TX[lang],b={...a,start:a.start||iso(new Date())},L=dues(b).filter(x=>x.amt>0),sale=(me.pos?me.pos+' ':'')+me.name,F=lang==='tg'?(f=>f<0?'таҳхона':'ошёнаи '+f):FL,cn=a.n+'/'+new Date(b.start+'T00:00:00').getFullYear();
@@ -360,30 +360,6 @@ function exportPDF(){const D=tblData();if(!D)return;const fr=document.createElem
  fr.srcdoc=`<html><head><meta charset="utf-8"><title>${esc(D.name)}</title><style>@page{size:A4 landscape;margin:12mm}body{font:12px Arial,sans-serif;color:#111}h1{font-size:18px;margin:0}p{margin:2px 0 12px;color:#555}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:5px 7px;text-align:left}th{background:#e8eefc}tr:nth-child(even) td{background:#f7f7f7}</style></head><body><h1>${esc(S.company)} — ${esc(S.project)}</h1><p>${esc(D.title)} · ${D.d} · валюта: ${cur==='USD'?'USD ($)':'TJS (c.)'} · сформировал: ${esc(me.name)}</p><table><thead><tr>${D.H.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${D.R.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
  runFrame(fr)}
 const closeM=()=>$('#modal').innerHTML='';
-
-// ---------- сохранение и загрузка (с поддержкой Firebase) ----------
-const sv = () => {
-    const payload = { apts, pays, users, set: S, cur };
-    for (const [k, v] of Object.entries(payload)) {
-        localStorage.setItem(LS + k, JSON.stringify(v));
-    }
-    db.ref('crmData').set(payload);
-};
-
-db.ref('crmData').on('value', (snapshot) => {
-    const cloudData = snapshot.val();
-    if (cloudData) {
-        apts = cloudData.apts || apts;
-        pays = cloudData.pays || pays;
-        users = cloudData.users || users;
-        S = Object.assign(S, cloudData.set || {});
-        cur = cloudData.cur || cur;
-        for (const [k, v] of Object.entries(cloudData)) {
-            localStorage.setItem(LS + k, JSON.stringify(v));
-        }
-        if (typeof draw === 'function' && me) draw();
-    }
-});
 
 // ---------- старт ----------
 (()=>{try{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');x.fillStyle='#2563eb';x.fillRect(0,0,180,180);x.fillStyle='#fff';x.fillRect(58,36,64,108);x.fillStyle='#2563eb';for(let r=0;r<5;r++)for(let k=0;k<3;k++)x.fillRect(68+k*19,46+r*19,10,10);const u=c.toDataURL('image/png');['apple-touch-icon','icon'].forEach(rel=>{const l=document.createElement('link');l.rel=rel;l.href=u;document.head.appendChild(l)})}catch(e){}})();
