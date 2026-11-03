@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>body{font-family:Inter,system-ui,sans-serif}input,select{outline:none}input:focus,select:focus{border-color:#2563eb!important}.cell{transition:.15s}.cell:hover{transform:translateY(-2px)}.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;flex:1;min-width:0}html{-webkit-text-size-adjust:100%}body{padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-tap-highlight-color:transparent}header{padding-top:env(safe-area-inset-top)}.cell div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -14,52 +15,15 @@ table.rt thead{display:none}table.rt,table.rt tbody{display:block}table.rt tr{di
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen"><div id="app"></div><div id="modal"></div><div id="modal2"></div>
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAi4ohDLCDdsoMLitwLYRdCO5YtUAMH11I",
-  authDomain: "sharshara-srm.firebaseapp.com",
-  databaseURL: "https://sharshara-srm-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "sharshara-srm",
-  storageBucket: "sharshara-srm.firebasestorage.app",
-  messagingSenderId: "666107434638",
-  appId: "1:666107434638:web:63d8225ded595534409bdf",
-  measurementId: "G-P90C6Q0QC0"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
 const LS='shs_',$=s=>document.querySelector(s);
 const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(LS+k));return v??d}catch{return d}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-const sv = () => {
-    const payload = { apts, pays, users, set: S, cur };
-    for (const [k, v] of Object.entries(payload)) {
-        localStorage.setItem(LS + k, JSON.stringify(v));
-    }
-    db.ref('crmData').set(payload);
-};
-
-db.ref('crmData').on('value', (snapshot) => {
-    const cloudData = snapshot.val();
-    if (cloudData) {
-        apts = cloudData.apts || apts;
-        pays = cloudData.pays || pays;
-        users = cloudData.users || users;
-        S = Object.assign(S, cloudData.set || {});
-        cur = cloudData.cur || cur;
-        for (const [k, v] of Object.entries(cloudData)) {
-            localStorage.setItem(LS + k, JSON.stringify(v));
-        }
-        if (typeof draw === 'function' && me) draw();
-    }
-});
-
 // ---------- данные ----------
 function seed(){const A=[[2,59.57],[1,47.7],[1,37.63],[2,65.09],[2,63.84]],B=[[2,85],[2,65],[1,47.86],[3,90],[3,90]];let n=0,r=[];
  [-1,1,2,3,4,5,6,7,8,9,10].forEach(fl=>(fl<=1?A:B).forEach(([rooms,area])=>r.push({n:++n,fl,rooms,area,ppm:550,name:'',phone:'',down:0,term:12,day:10,paid:0,start:''})));return r}
-let apts=load('apts',null)||seed(),pays=load('pays',[]),S=Object.assign({rate:10.95,company:'Шаршара Сохтмон',project:'ЖК «Шаршара Палас»',tpl:DEFTPL(),pl:'tg',roles:DEFROLES(),positions:['Менеджер по продажам','Бухгалтер','Директор']},load('set',{})),cur=load('cur','USD'),tab='chess',flt='all',q='',me=null;
-let users=load('users',[{name:'Администратор',login:'admin',pass:'admin123',role:'admin'},{name:'Менеджер',login:'manager',pass:'123456',role:'user'}]);
+const pref=(k,d)=>{try{return localStorage.getItem(LS+k)??d}catch{return d}};
+const defaultS=()=>({rate:10.95,company:'Шаршара Сохтмон',project:'ЖК «Шаршара Палас»',tpl:DEFTPL(),roles:DEFROLES(),positions:[]});
+let apts=[],pays=[],users=[],S=defaultS(),cur=pref('cur','USD'),tab='chess',flt='all',q='',me=null;S.pl=pref('pl','tg');
 
 function DEFTPL(){return{tg:`# ШАРТНОМАИ № {{номер_договора}}
 # оид ба харидории манзил бо пардохти ақсотӣ
@@ -100,7 +64,7 @@ ru:`# ДОГОВОР № {{номер_договора}}
 4.2. Договор составлен в двух экземплярах, имеющих одинаковую юридическую силу, по одному для каждой стороны.
 4.3. Изменения и дополнения действительны только в письменной форме и при наличии подписей обеих сторон.`}}
 const TX={tg:{t:'Ҷадвали пардохти ақсот',ap:'Замима № 1 ба шартномаи № ',obj:'Манзил',rm:'ҳуҷра',buyer:'Харидор',sd:'Санаи имзои шартнома',prel:' (пешакӣ — шартнома ҳанӯз имзо нашудааст)',cost:'Арзиши манзил',down:'Пардохти аввалия',term:'Мӯҳлат / пардохти моҳона',mo:'моҳ',until:'то рӯзи',ofm:'-уми ҳар моҳ',paid:'Пардохтшуда ба санаи чоп',rest:'бақия',no:'№',date:'Санаи пардохт',amt:'Маблағ',bal:'Бақияи қарз',mark:'Аломат дар бораи пардохт',first:'Пардохти аввалия',seller:'Фурӯшанда',buy:'Харидор',sig:'Имзо',mp:'Ҷойи мӯҳр',dt:'Сана',pass:'Шиносномаи №',pd:'Санаи чоп',cur:'Маблағҳо бо сомонӣ (c.) бо қурби 1 USD = '},
-ru:{t:'График платежей по договору рассрочки',ap:'Приложение № 1 к договору № ',obj:'Квартира',rm:'комн.',buyer:'Покупатель',sd:'Дата подписания договора',prel:' (предварительно — договор ещё не подписан)',cost:'Стоимость квартиры',down:'Первоначальный взнос',term:'Срок / ежемесячный взнос',срок:'Срок / ежемесячный взнос',mo:'мес.',until:'платёж до',ofm:' числа',paid:'Оплачено на дату печати',rest:'остаток',no:'№',date:'Дата платежа',amt:'Сумма',bal:'Остаток по договору',mark:'Отметка об оплате',first:'Первый взнос',seller:'Продавец (Застройщик)',buy:'Покупатель',sig:'Подпись',mp:'М.П.',dt:'Дата',pass:'Паспорт №',pd:'Дата печати',cur:'Суммы указаны в сомони (c.) по курсу 1 USD = '}};
+ru:{t:'График платежей по договору рассрочки',ap:'Приложение № 1 к договору № ',obj:'Квартира',rm:'комн.',buyer:'Покупатель',sd:'Дата подписания договора',prel:' (предварительно — договор ещё не подписан)',cost:'Стоимость квартиры',down:'Первоначальный взнос',term:'Срок / ежемесячный взнос',mo:'мес.',until:'платёж до',ofm:' числа',paid:'Оплачено на дату печати',rest:'остаток',no:'№',date:'Дата платежа',amt:'Сумма',bal:'Остаток по договору',mark:'Отметка об оплате',first:'Первый взнос',seller:'Продавец (Застройщик)',buy:'Покупатель',sig:'Подпись',mp:'М.П.',dt:'Дата',pass:'Паспорт №',pd:'Дата печати',cur:'Суммы указаны в сомони (c.) по курсу 1 USD = '}};
 function fillTpl(t,a,b,L,lang){const F=lang==='tg'?(f=>f<0?'таҳхона':'ошёнаи '+f):FL,last=L[L.length-1],V={'номер_договора':a.n+'/'+new Date(b.start+'T00:00:00').getFullYear(),'номер':a.n,'жк':S.project,'компания':S.company,'этаж':F(a.fl),'комнат':a.rooms,'площадь':a.area,'покупатель':a.name,'телефон':a.phone,'стоимость':fm(total(a)),'цена_м2':fm(a.ppm),'взнос':fm(a.down),'остаток_договора':fm(total(a)-a.down),'срок':a.term,'ежемесячно':fm(monthly(a)),'день':a.day,'дата':fd(b.start),'дата_последнего':last?fd(last.d):'—','представитель':(me.pos?me.pos+' ':'')+me.name};
  return esc(t).replace(/\{\{([^}]+)\}\}/g,(m,k)=>k in V?esc(V[k]):m)}
 function printDoc(n,full){if(!can('print'))return;const a=apts.find(x=>x.n===n),lang=($('#pl')&&$('#pl').value)||S.pl||'tg',X=TX[lang],b={...a,start:a.start||iso(new Date())},L=dues(b).filter(x=>x.amt>0),sale=(me.pos?me.pos+' ':'')+me.name,F=lang==='tg'?(f=>f<0?'таҳхона':'ошёнаи '+f):FL,cn=a.n+'/'+new Date(b.start+'T00:00:00').getFullYear();
@@ -116,9 +80,11 @@ function printDoc(n,full){if(!can('print'))return;const a=apts.find(x=>x.n===n),
 const MOB=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function runFrame(f){if(!MOB){f.onload=()=>{f.contentWindow.focus();f.contentWindow.print();setTimeout(()=>f.remove(),60000)};document.body.appendChild(f);return}
  const w=window.open('','_blank');if(!w){alert('Разрешите всплывающие окна для печати. Из открывшейся страницы можно распечатать или сохранить PDF.');return}w.document.open();w.document.write(f.srcdoc);w.document.close();w.focus();setTimeout(()=>w.print(),500)}
-function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({v:1,apts,pays,users,set:S,cur})],{type:'application/json'}));a.download='sharshara-backup-'+iso(new Date())+'.json';a.click()}
-function restore(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.apts)||!Array.isArray(d.pays)||!Array.isArray(d.users))throw 0;if(!confirm('Заменить все данные на этом устройстве данными из копии?'))return;apts=d.apts;pays=d.pays;users=d.users;S=Object.assign(S,d.set||{});sv();me=users.find(u=>u.login===me.login)||null;draw()}catch{alert('Файл не похож на резервную копию CRM')}};r.readAsText(f)}
-function backupUI(){return `<div class="${C} p-5 mt-4"><h3 class="font-semibold mb-1">Резервная копия и перенос на другое устройство</h3><p class="text-xs text-slate-500 mb-3">Данные хранятся в браузере каждого устройства отдельно. Чтобы перенести базу с компьютера на телефон (или обратно), сохраните копию и загрузите её на другом устройстве.</p><div class="flex flex-wrap gap-2"><button class="${BTN}" onclick="backup()"><i class="fa-solid fa-download mr-2"></i>Сохранить копию (JSON)</button><label class="bg-slate-800 hover:bg-slate-700 rounded-xl px-4 py-2 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-2"></i>Загрузить копию<input type="file" accept=".json,application/json" class="hidden" onchange="restore(this)"></label></div></div>`}
+function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({v:2,apts,pays,users:users.map(({pass,...u})=>u),set:{...S,pko:PKO},cur})],{type:'application/json'}));a.download='sharshara-backup-'+iso(new Date())+'.json';a.click()}
+function restore(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.apts)||!Array.isArray(d.pays)||!Array.isArray(d.users))throw 0;if(!confirm('Заменить ВСЕ данные в облаке данными из копии? Это увидят все сотрудники.'))return;
+ const mine={...me};apts=d.apts.map(a=>({...a}));pays=d.pays;users=d.users.map(({pass,edit,...u})=>u);const i=users.findIndex(u=>String(u.login).toLowerCase()===String(mine.login).toLowerCase());if(i<0)users.push(mine);else users[i]={...users[i],role:mine.role,acc:1};
+ const ds=d.set||{};S=Object.assign(defaultS(),ds,{pl:S.pl});delete S.pko;PKO=Math.max(PKO,+ds.pko||0,...pays.map(p=>p.no||0));apts.sort((a,b)=>a.fl-b.fl||a.n-b.n);S.roles.forEach(r=>{r.perms=r.perms||{}});sv();setMe();draw()}catch(e){alert('Файл не похож на резервную копию CRM')}};r.readAsText(f)}
+function backupUI(){return `<div class="${C} p-5 mt-4"><h3 class="font-semibold mb-1">Резервная копия и перенос на другое устройство</h3><p class="text-xs text-slate-500 mb-3">Данные хранятся в облаке и общие для всех сотрудников. Копия — страховка на случай ошибки: сохраняйте её регулярно (например, раз в неделю) и храните закрыто. При загрузке копии данные в облаке заменяются.</p><div class="flex flex-wrap gap-2"><button class="${BTN}" onclick="backup()"><i class="fa-solid fa-download mr-2"></i>Сохранить копию (JSON)</button><label class="bg-slate-800 hover:bg-slate-700 rounded-xl px-4 py-2 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-2"></i>Загрузить копию<input type="file" accept=".json,application/json" class="hidden" onchange="restore(this)"></label></div></div>`}
 const printSched=n=>printDoc(n,false),printContract=n=>printDoc(n,true);
 
 const pl=(n,a,b,c)=>{const m=n%100,k=n%10;return m>10&&m<15?c:k===1?a:k>1&&k<5?b:c};
@@ -143,12 +109,53 @@ function tplUI(){return `<div class="${C} p-5 mt-4"><h3 class="font-semibold mb-
  <div class="grid lg:grid-cols-2 gap-3"><div><div class="text-xs text-slate-400 mb-1">Тоҷикӣ</div><textarea id="tp_tg" rows="16" class="${IN} font-mono text-xs">${esc(S.tpl.tg)}</textarea></div><div><div class="text-xs text-slate-400 mb-1">Русский</div><textarea id="tp_ru" rows="16" class="${IN} font-mono text-xs">${esc(S.tpl.ru)}</textarea></div></div>
  <div class="flex gap-2 mt-3"><button class="${BTN}" onclick="S.tpl={tg:$('#tp_tg').value,ru:$('#tp_ru').value};sv();alert('Шаблон сохранён')">Сохранить шаблон</button><button class="bg-slate-800 hover:bg-slate-700 rounded-xl px-4 py-2 text-sm" onclick="if(confirm('Вернуть стандартные тексты?')){S.tpl=DEFTPL();sv();draw()}">Вернуть стандартный</button></div></div>`}
 function DEFROLES(){return[{id:'admin',name:'Администратор',sys:1,perms:{}},{id:'user',name:'Пользователь',perms:{tab_owners:1,tab_inst:1,tab_next:1,tab_late:1,tab_log:1,pay:1,edit:1,print:1,export:1}}]}
-if(users.some(u=>u.edit===false)&&!S.roles.some(r=>r.id==='viewer'))S.roles.push({id:'viewer',name:'Только просмотр и оплаты',perms:{...DEFROLES()[1].perms,edit:0}});
-users.forEach(u=>{if(u.edit===false)u.role='viewer';delete u.edit});
-S.roles.forEach(r=>{if(!r.sys&&r.perms&&r.perms.tab_dash===undefined)r.perms.tab_dash=1});
-apts.forEach(a=>{if(a.name&&!a.mgr){const q=pays.find(p=>p.apt===a.n&&p.by);a.mgr=q?q.by:''}});
-S.pko=Math.max(S.pko||0,...pays.map(p=>p.no||0));pays.forEach(p=>{if(!p.no)p.no=++S.pko});
-
+// ---------- облако (Firebase): общая база + вход по логину ----------
+const firebaseConfig={apiKey:"AIzaSyAi4ohDLCDdsoMLitwLYRdCO5YtUAMH11I",authDomain:"sharshara-srm.firebaseapp.com",databaseURL:"https://sharshara-srm-default-rtdb.europe-west1.firebasedatabase.app",projectId:"sharshara-srm",storageBucket:"sharshara-srm.firebasestorage.app",messagingSenderId:"666107434638",appId:"1:666107434638:web:63d8225ded595534409bdf"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(),db=firebase.database(),EM='@sharshara-crm.app',LOGIN_RE=/^[A-Za-z0-9._-]{2,30}$/;
+const em=l=>String(l).trim().toLowerCase()+EM,loginOf=u=>((u&&u.email)||'').replace(EM,'');
+let READY=false,inflight=0,booted=false,PKO=0,CLOUD={apts:{},pays:{},users:{},set:'',pko:0},unsub=[],softT=null;
+const clean=v=>{if(Array.isArray(v)){const a=v.map(clean).filter(x=>x!==undefined);return a.length?a:undefined}
+ if(v&&typeof v==='object'){const o={};Object.keys(v).sort().forEach(k=>{const c=clean(v[k]);if(c!==undefined)o[k]=c});return Object.keys(o).length?o:undefined}
+ if(v===null||v===undefined||v===''||(typeof v==='number'&&!isFinite(v)))return undefined;return v};
+const KA=a=>'a'+a.n,KP=p=>'p'+String(p.id).replace(/[.#$\[\]\/]/g,'_'),KU=u=>'u'+String(u.login).toLowerCase();
+function forCloud(){const o={apts:{},pays:{},users:{},set:null};apts.forEach(a=>{o.apts[KA(a)]=clean(a)});pays.forEach(p=>{o.pays[KP(p)]=clean(p)});users.forEach(u=>{const{pass,...r}=u;o.users[KU(u)]=clean(r)});o.set=clean({...S,pl:undefined,pko:undefined})||{};return o}
+const strs=N=>{const o={apts:{},pays:{},users:{},set:JSON.stringify(N.set)};for(const c of['apts','pays','users'])for(const k in N[c])o[c][k]=JSON.stringify(N[c][k]);return o};
+const canon=o=>JSON.stringify(Object.keys(o).sort().map(k=>[k,o[k]]));
+function recalc(){let ch=false;const m={};pays.forEach(p=>{m[p.apt]=(m[p.apt]||0)+p.usd});apts.forEach(a=>{const v=m[a.n]||0;if(Math.abs((a.paid||0)-v)>.005){a.paid=v;ch=true}});return ch}
+let syncAlerted=false;const syncErr=e=>{if(syncAlerted)return;syncAlerted=true;setTimeout(()=>syncAlerted=false,8000);alert('Ошибка связи с облаком: '+((e&&e.message)||e)+'\nИзменение могло не сохраниться — обновите страницу.')};
+function sv(){try{localStorage.setItem(LS+'cur',cur);localStorage.setItem(LS+'pl',S.pl||'tg')}catch{}
+ if(!READY)return;recalc();const N=forCloud(),up={};
+ for(const c of['apts','pays','users']){const cm=CLOUD[c];for(const k of Object.keys(N[c])){const j=JSON.stringify(N[c][k]);if(cm[k]!==j){up['crm/'+c+'/'+k]=N[c][k];cm[k]=j}}for(const k of Object.keys(cm))if(!(k in N[c])){up['crm/'+c+'/'+k]=null;delete cm[k]}}
+ const sj=JSON.stringify(N.set);if(sj!==CLOUD.set){up['crm/set']=N.set;CLOUD.set=sj}
+ if(PKO!==CLOUD.pko){up['crm/pko']=PKO;CLOUD.pko=PKO}
+ if(!Object.keys(up).length)return;inflight++;
+ db.ref().update(up).then(()=>{inflight--;if(!inflight)resync()}).catch(e=>{inflight--;syncErr(e);resync()})}
+function resync(){db.ref('crm').once('value').then(s=>onCloud(s.val())).catch(syncErr)}
+function pkoNext(pid){db.ref('crm/pko').transaction(c=>(c||0)+1,(err,ok,snap)=>{if(err||!ok){syncErr(err||{message:'не удалось получить номер ПКО'});return}const n=snap.val(),q=pays.find(x=>x.id===pid);PKO=Math.max(PKO,n);CLOUD.pko=PKO;if(q){q.no=n;sv();soft()}})}
+function soft(){clearTimeout(softT);const e=document.activeElement;if(me&&e&&e!==document.body&&['INPUT','TEXTAREA','SELECT'].includes(e.tagName)&&$('#app').contains(e)){softT=setTimeout(soft,1500);return}if(me)draw()}
+const loadingHTML=(msg,err)=>`<div class="min-h-screen flex items-center justify-center p-4"><div class="${C} w-full max-w-sm p-8 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-blue-600 flex items-center justify-center text-2xl mb-4"><i class="fa-solid ${err?'fa-triangle-exclamation':'fa-spinner fa-spin'}"></i></div><div class="text-sm ${err?'text-red-300':'text-slate-300'}">${esc(msg)}</div>${err?`<button class="${BTN} mt-5" onclick="logout()">Выйти</button>`:''}</div></div>`;
+const showLoading=(m,e)=>{$('#app').innerHTML=loadingHTML(m,e)};
+function setMe(){const lg=loginOf(auth.currentUser).toLowerCase();me=users.find(x=>String(x.login).toLowerCase()===lg)||null;if(!me){READY=false;showLoading('Для вашей учётной записи нет профиля в CRM. Обратитесь к администратору.',true)}return !!me}
+function onCloud(v){
+ if(inflight>0||!auth.currentUser)return;v=v||{};
+ if(!v.users){if(booted)return;booted=true;const lg=loginOf(auth.currentUser);users=[{name:lg,login:lg,role:'admin',acc:1}];apts=seed();pays=[];S=Object.assign(defaultS(),{positions:['Менеджер по продажам','Бухгалтер','Директор'],pl:pref('pl','tg')});PKO=0;CLOUD={apts:{},pays:{},users:{},set:'',pko:0};READY=true;me=users[0];sv();draw();return}
+ const inc={apts:{},pays:{},users:{},set:JSON.stringify(clean(v.set||{})||{}),pko:+v.pko||0};
+ for(const c of['apts','pays','users'])for(const[k,o] of Object.entries(v[c]||{}))inc[c][k]=JSON.stringify(clean(o));
+ if(READY){const L=strs(forCloud());if(canon(L.apts)===canon(inc.apts)&&canon(L.pays)===canon(inc.pays)&&canon(L.users)===canon(inc.users)&&L.set===inc.set&&PKO===inc.pko){CLOUD=inc;return}}
+ CLOUD=inc;const was=READY;
+ apts=Object.values(v.apts||{}).map(o=>({name:'',phone:'',mgr:'',start:'',down:0,paid:0,term:12,day:10,rooms:2,...o})).sort((a,b)=>a.fl-b.fl||a.n-b.n);
+ pays=Object.values(v.pays||{}).map(p=>({client:'',mgr:'',pos:'',by:'',...p}));
+ users=Object.values(v.users||{}).map(u=>({pos:'',...u}));
+ S=Object.assign(defaultS(),v.set||{},{pl:pref('pl','tg')});S.roles.forEach(r=>{r.perms=r.perms||{}});S.positions=S.positions||[];PKO=inc.pko;
+ READY=true;const ch=recalc();if(!setMe())return;if(ch)sv();was?soft():draw()}
+function detach(){unsub.forEach(f=>f());unsub=[];READY=false;booted=false;inflight=0;me=null;apts=[];pays=[];users=[];S=defaultS();S.pl=pref('pl','tg');CLOUD={apts:{},pays:{},users:{},set:'',pko:0}}
+auth.onAuthStateChanged(u=>{detach();if(!u){loginView();return}tab='chess';showLoading('Загрузка данных…');
+ const t=setTimeout(()=>{if(!READY)showLoading('Нет связи с базой. Проверьте интернет и обновите страницу.',true)},12000),ref=db.ref('crm'),cb=snap=>{clearTimeout(t);onCloud(snap.val())};
+ ref.on('value',cb,err=>{clearTimeout(t);showLoading('Нет доступа к базе: '+err.message+'. Проверьте правила Firebase и наличие вашего профиля в CRM.',true)});unsub=[()=>ref.off('value',cb)]});
+let AUX=null;async function mkAccount(login,pass){AUX=AUX||firebase.initializeApp(firebaseConfig,'aux');const a=AUX.auth();try{await a.createUserWithEmailAndPassword(em(login),pass)}finally{try{await a.signOut()}catch{}}}
+const authMsg=e=>({'auth/invalid-credential':'Неверный логин или пароль','auth/wrong-password':'Неверный логин или пароль','auth/user-not-found':'Неверный логин или пароль','auth/invalid-login-credentials':'Неверный логин или пароль','auth/invalid-email':'Неверный логин','auth/too-many-requests':'Слишком много попыток входа. Подождите несколько минут','auth/network-request-failed':'Нет связи с интернетом','auth/operation-not-allowed':'В Firebase не включён вход по Email/паролю'}[e.code]||('Ошибка входа: '+(e.message||e)));
+const accErr=e=>e.code==='auth/email-already-in-use'?'Учётная запись с таким логином уже существует. Если сотрудник забыл пароль — удалите пользователя в Firebase Console → Authentication и создайте доступ заново.':e.code==='auth/weak-password'?'Пароль слишком простой: нужно минимум 6 символов':'Не удалось создать доступ: '+(e.message||e);
 // ---------- расчёты ----------
 const total=a=>a.area*a.ppm,monthly=a=>(total(a)-a.down)/a.term;
 const st=a=>total(a)>0&&a.paid>=total(a)-.01?'sold':a.name?'inst':'free';
@@ -167,7 +174,7 @@ function pay(n,usd,mgr,date,note){if(!can('pay'))return alert('Нет права
  if(!a.name)return alert('Сначала укажите ФИО покупателя и сохраните карточку');
  if(usd>total(a)-a.paid+.01)return alert('Сумма больше остатка долга: '+fm(total(a)-a.paid));
  if(!a.start)a.start=date||iso(new Date());a.paid+=usd;
- pays.push({id:Date.now()+Math.random(),date:date?new Date(date+'T12:00:00').toISOString():new Date().toISOString(),apt:n,client:a.name,mgr:mgr||me.name,by:me.login,pos:me.pos||'',cur,amt:r2(fromUSD(usd)),no:(S.pko=(S.pko||0)+1),cm:note?[{id:Date.now()*1000+Math.floor(Math.random()*1000),by:me.login,n:me.name,t:new Date().toISOString(),x:note}]:[],usd});sv();return true}
+ const pid=Date.now()+Math.random();pays.push({id:pid,date:date?new Date(date+'T12:00:00').toISOString():new Date().toISOString(),apt:n,client:a.name,mgr:mgr||me.name,by:me.login,pos:me.pos||'',cur,amt:r2(fromUSD(usd)),no:0,cm:note?[{id:Date.now()*1000+Math.floor(Math.random()*1000),by:me.login,n:me.name,t:new Date().toISOString(),x:note}]:[],usd});sv();pkoNext(pid);return true}
 // ---------- UI ----------
 const C='bg-slate-900 border border-slate-800 rounded-2xl',IN='w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm disabled:opacity-50',BTN='bg-blue-600 hover:bg-blue-500 transition rounded-xl px-4 py-2 text-sm font-semibold text-white';
 const COL={free:'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25',inst:'bg-orange-500/15 border-orange-500/40 text-orange-300 hover:bg-orange-500/25',sold:'bg-blue-600/25 border-blue-500/50 text-blue-300 hover:bg-blue-600/40'};
@@ -179,9 +186,9 @@ function loginView(msg=''){$('#app').innerHTML=`<div class="min-h-screen flex it
 <div class="space-y-3"><input id="lg" class="${IN}" placeholder="Логин" autocomplete="username"><input id="ps" type="password" class="${IN}" placeholder="Пароль" autocomplete="current-password" onkeydown="event.key==='Enter'&&doLogin()">
 <label class="flex items-center gap-2 text-sm text-slate-400"><input id="rm" type="checkbox" checked> Запомнить меня</label>
 <div class="text-red-400 text-sm">${msg}</div><button onclick="doLogin()" class="${BTN} w-full">Войти</button></div></div></div>`}
-function doLogin(){const u=users.find(x=>x.login===$('#lg').value.trim()&&x.pass===$('#ps').value);if(!u)return loginView('Неверный логин или пароль');
- (($('#rm').checked?localStorage:sessionStorage)).setItem(LS+'sess',u.login);me=u;draw()}
-function logout(){localStorage.removeItem(LS+'sess');sessionStorage.removeItem(LS+'sess');me=null;loginView()}
+async function doLogin(){const l=$('#lg').value.trim(),p=$('#ps').value;if(!l||!p)return loginView('Введите логин и пароль');if(!LOGIN_RE.test(l))return loginView('Логин: латинские буквы, цифры, точка, дефис, подчёркивание');
+ try{await auth.setPersistence($('#rm').checked?firebase.auth.Auth.Persistence.LOCAL:firebase.auth.Auth.Persistence.SESSION);await auth.signInWithEmailAndPassword(em(l),p)}catch(e){loginView(authMsg(e))}}
+function logout(){auth.signOut()}
 const TABS0=()=>[['chess','Шахматка','fa-table-cells'],['dash','Дашборд','fa-chart-pie'],['owners','Собственники','fa-key'],['inst','Рассрочки','fa-file-contract'],['next','Ближайшие платежи','fa-calendar-days'],['late','Журнал просрочек','fa-triangle-exclamation'],['log','Журнал оплат','fa-receipt'],...(isAdmin()?[['set','Настройки','fa-gear']]:[])];
 const TABS=()=>TABS0().filter(x=>x[0]==='chess'||can('tab_'+x[0]));
 function metrics(){const n=apts.length,free=apts.filter(a=>st(a)==='free').length,sold=apts.filter(a=>st(a)==='sold').length,inst=n-free-sold;
@@ -280,8 +287,8 @@ function releaseApt(n){if(!isAdmin()||!confirm('Расторгнуть дого�
 // ---------- настройки ----------
 function set0(){return `<div class="grid lg:grid-cols-3 gap-4"><div class="${C} p-5 space-y-3"><h3 class="font-semibold">Курс валют</h3><label class="text-sm text-slate-400">1 USD = ? TJS</label><input id="rate" type="number" step="0.01" value="${S.rate}" class="${IN}"><button class="${BTN}" onclick="S.rate=parseFloat($('#rate').value)||S.rate;sv();draw()">Сохранить курс</button>
  <hr class="border-slate-800"><h3 class="font-semibold text-red-400">Опасная зона</h3><button class="bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl px-4 py-2 text-sm hover:bg-red-600/30" onclick="resetAll()">Сбросить базу</button></div>
- <div class="${C} p-5 lg:col-span-2"><h3 class="font-semibold mb-3">Сотрудники</h3><div class="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4"><input id="un" class="${IN}" placeholder="ФИО"><input id="ul" class="${IN}" placeholder="Логин"><input id="up" class="${IN}" placeholder="Пароль"><select id="ur" class="${IN}">${roleOpts('user')}</select><select id="uo" class="${IN}">${posOpts('')}</select><button class="${BTN}" onclick="addUser()"><i class="fa-solid fa-user-plus mr-1"></i>Добавить</button></div>
- ${tbl(['ФИО','Логин','Пароль','Роль','Должность',''],users.map((u,i)=>[esc(u.name),esc(u.login),`<input class="${IN} !w-36 !py-1 font-mono" value="${esc(u.pass)}" onchange="setPass(${i},this.value)">`,`<select class="${IN} !w-auto" onchange="setRole(${i},this.value)">${roleOpts(u.role)}</select>`,`<select class="${IN} !w-auto" onchange="setPos(${i},this.value)">${posOpts(u.pos||'')}</select>`,u.login===me.login?'<span class="text-slate-600 text-xs">это вы</span>':`<button class="text-red-400 hover:text-red-300 text-xs" onclick="delUser(${i})">Удалить доступ</button>`]))}</div></div>${rolesUI()}${tplUI()}${backupUI()}`}
+ <div class="${C} p-5 lg:col-span-2"><h3 class="font-semibold mb-3">Сотрудники</h3><div class="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4"><input id="un" class="${IN}" placeholder="ФИО"><input id="ul" class="${IN}" placeholder="Логин (латиницей)"><input id="up" class="${IN}" placeholder="Пароль (от 6)"><select id="ur" class="${IN}">${roleOpts('user')}</select><select id="uo" class="${IN}">${posOpts('')}</select><button class="${BTN}" onclick="addUser()"><i class="fa-solid fa-user-plus mr-1"></i>Добавить</button></div>
+ ${tbl(['ФИО','Логин','Доступ','Роль','Должность',''],users.map((u,i)=>[esc(u.name),esc(u.login),(u.acc?'<span class="text-emerald-400 text-xs">есть</span>':`<button class="text-blue-400 text-xs hover:underline" onclick="mkAcc(${i})">Создать доступ</button>`),`<select class="${IN} !w-auto" onchange="setRole(${i},this.value)">${roleOpts(u.role)}</select>`,`<select class="${IN} !w-auto" onchange="setPos(${i},this.value)">${posOpts(u.pos||'')}</select>`,u.login===me.login?'<span class="text-slate-600 text-xs">это вы</span>':`<button class="text-red-400 hover:text-red-300 text-xs" onclick="delUser(${i})">Удалить доступ</button>`]))}</div></div>${rolesUI()}${tplUI()}${backupUI()}`}
 const PERMS=[['tab_dash','Вкладка «Дашборд»'],['tab_owners','Вкладка «Собственники»'],['tab_inst','Вкладка «Рассрочки»'],['tab_next','Вкладка «Ближайшие платежи»'],['tab_late','Вкладка «Журнал просрочек»'],['tab_log','Вкладка «Журнал оплат»'],['pay','Принимать платежи'],['edit','Редактировать договоры и данные клиентов'],['chgMgr','Менять ответственного менеджера по договору'],['editPay','Редактировать платежи и их даты, вносить задним числом'],['delPay','Удалять платежи'],['print','Печать графика платежей'],['export','Экспорт в PDF и Excel']];
 const roleOpts=v=>S.roles.map(r=>`<option value="${esc(r.id)}" ${r.id===v?'selected':''}>${esc(r.name)}</option>`).join(''),posOpts=v=>`<option value="">— без должности —</option>`+S.positions.map(p=>`<option ${p===v?'selected':''}>${esc(p)}</option>`).join('');
 function setRole(i,v){if(users[i].login===me.login){alert('Свою роль менять нельзя');return draw()}users[i].role=v;sv();draw()}
@@ -318,8 +325,11 @@ function preview(a,g,tot,down,m){const term=Math.round(g('f_term')),day=Math.min
  const R=(a1,a2,a3,a4)=>`<tr class="border-b border-slate-800/60"><td class="px-3 py-1">${a1}</td><td class="px-3 py-1">${a2}</td><td class="px-3 py-1">${a3}</td><td class="px-3 py-1">${a4}</td></tr>`;let rem=tot-down,rows=down>0?R('Первый взнос',fd(s0),fm(down),fm(rem)):'';
  for(let k=1;k<=term;k++){const mo=s0.getMonth()+k,d=new Date(s0.getFullYear(),mo,Math.min(day,new Date(s0.getFullYear(),mo+1,0).getDate()));rem=Math.max(0,rem-m);rows+=R(k,fd(d),fm(m),fm(rem))}
  $('#prev').innerHTML=`<div class="text-sm font-semibold mb-2">Предварительный график <span class="text-xs font-normal text-slate-500">(пересчитывается при вводе${$('#f_start').value?'':', отсчёт от сегодняшней даты'})</span></div><div class="max-h-48 overflow-y-auto border border-slate-800 rounded-xl mb-4"><table class="w-full text-xs"><thead class="text-slate-400 text-left sticky top-0 bg-slate-900"><tr><th class="px-3 py-1">№</th><th class="px-3 py-1">Дата</th><th class="px-3 py-1">Сумма</th><th class="px-3 py-1">Остаток</th></tr></thead><tbody>${rows}</tbody></table></div>`}
-function addUser(){const u={name:$('#un').value.trim(),login:$('#ul').value.trim(),pass:$('#up').value,role:$('#ur').value,pos:$('#uo').value};if(!u.name||!u.login||!u.pass)return alert('Заполните ФИО, логин и пароль');if(users.some(x=>x.login===u.login))return alert('Такой логин уже есть');users.push(u);sv();draw()}
-function delUser(i){if(confirm('Удалить доступ сотрудника '+users[i].name+'?')){users.splice(i,1);sv();draw()}}
+async function addUser(){const u={name:$('#un').value.trim(),login:$('#ul').value.trim(),role:$('#ur').value,pos:$('#uo').value},p=$('#up').value;if(!u.name||!u.login||!p)return alert('Заполните ФИО, логин и пароль');if(!LOGIN_RE.test(u.login))return alert('Логин: латинские буквы, цифры, . _ - (2–30 символов)');if(p.length<6)return alert('Пароль — минимум 6 символов');if(users.some(x=>String(x.login).toLowerCase()===u.login.toLowerCase()))return alert('Такой логин уже есть');
+ try{await mkAccount(u.login,p)}catch(e){return alert(accErr(e))}u.acc=1;users.push(u);sv();draw();alert('Сотрудник добавлен. Передайте ему логин и пароль; сменить пароль он сможет сам (значок ключа в шапке).')}
+async function mkAcc(i){const u=users[i],p=prompt('Задайте пароль для сотрудника «'+u.name+'» (минимум 6 символов):');if(!p)return;if(p.length<6)return alert('Минимум 6 символов');if(!LOGIN_RE.test(u.login))return alert('Логин «'+u.login+'» не подходит для входа (нужны латинские буквы и цифры). Создайте нового сотрудника с другим логином.');
+ try{await mkAccount(u.login,p)}catch(e){if(e.code==='auth/email-already-in-use'&&confirm('Учётная запись с этим логином уже есть в Firebase. Отметить, что доступ у сотрудника есть?')){u.acc=1;sv();draw()}else alert(accErr(e));return}u.acc=1;sv();draw();alert('Доступ создан. Передайте сотруднику логин и пароль.')}
+function delUser(i){if(confirm('Удалить сотрудника '+users[i].name+'? Он сразу потеряет доступ к данным CRM. (Учётную запись можно дополнительно удалить в Firebase Console → Authentication.)')){users.splice(i,1);sv();draw()}}
 function resetAll(){if(confirm('Удалить все оплаты и данные клиентов? Пользователи и курс останутся.')){apts=seed();pays=[];sv();draw()}}
 // ---------- карточка квартиры ----------
 function openApt(n){const a=apts.find(x=>x.n===n),s=st(a),L=(l,h)=>`<label class="block"><span class="text-xs text-slate-400">${l}</span>${h}</label>`,u=cur==='USD'?'$':'c.',DA=isAdmin()?'':'disabled',DE=canEdit()?'':'disabled';
@@ -347,9 +357,9 @@ function sched(n){const a=apts.find(x=>x.n===n),T=today0();let left=a.paid;
  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">${B('Стоимость',fm(total(a)))}${B('Первый взнос',fm(a.down))}${B('Взнос/мес · '+a.term+' мес.',fm(monthly(a)))}${B('Остаток долга',fm(total(a)-a.paid))}</div>
  ${a.start?`<div class="overflow-x-auto"><table class="w-full text-sm"><thead class="text-slate-400 text-left border-b border-slate-800"><tr>${['№','Дата','К оплате','Оплачено','Долг по взносу','Остаток договора','Статус'].map(h=>`<th class="px-3 py-2 font-medium">${h}</th>`).join('')}</tr></thead><tbody>${L}</tbody></table></div>`:'<div class="text-slate-500 text-sm py-6 text-center">График появится после первой оплаты</div>'}
  <div class="mt-4 flex flex-wrap gap-2"><button class="${BTN}" onclick="openApt(${n})">Открыть карточку</button>${can('print')?`<select id="pl" class="${IN} !w-auto" onchange="S.pl=this.value;sv()"><option value="tg" ${S.pl==='tg'?'selected':''}>Тоҷикӣ</option><option value="ru" ${S.pl==='ru'?'selected':''}>Русский</option></select><button class="${BTN} !bg-emerald-600 hover:!bg-emerald-500" onclick="printSched(${n})"><i class="fa-solid fa-print mr-2"></i>Печать графика</button><button class="${BTN} !bg-indigo-600 hover:!bg-indigo-500" onclick="printContract(${n})"><i class="fa-solid fa-file-signature mr-2"></i>Договор + график</button>`:''}</div></div></div>`}
-function chPass(){$('#modal').innerHTML=`<div class="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onclick="if(event.target===this)closeM()"><div class="${C} w-full max-w-sm p-6 space-y-3"><div class="flex justify-between"><h2 class="font-bold">Смена пароля</h2><button onclick="closeM()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button></div><input id="p0" type="password" class="${IN}" placeholder="Текущий пароль"><input id="p1" type="password" class="${IN}" placeholder="Новый пароль (от 4 символов)"><input id="p2" type="password" class="${IN}" placeholder="Повторите новый пароль"><div id="pe" class="text-red-400 text-sm"></div><button class="${BTN} w-full" onclick="savePass()">Сохранить пароль</button></div></div>`}
-function savePass(){const a=$('#p0').value,b=$('#p1').value,c=$('#p2').value,e=m=>$('#pe').textContent=m;if(a!==me.pass)return e('Текущий пароль неверный');if(b.length<4)return e('Минимум 4 символа');if(b!==c)return e('Пароли не совпадают');me.pass=b;sv();closeM();alert('Пароль изменён')}
-function setPass(i,v){v=v.trim();if(!isAdmin())return;if(v.length<4){alert('Пароль — минимум 4 символа');return draw()}users[i].pass=v;sv()}
+function chPass(){$('#modal').innerHTML=`<div class="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onclick="if(event.target===this)closeM()"><div class="${C} w-full max-w-sm p-6 space-y-3"><div class="flex justify-between"><h2 class="font-bold">Смена пароля</h2><button onclick="closeM()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button></div><input id="p0" type="password" class="${IN}" placeholder="Текущий пароль"><input id="p1" type="password" class="${IN}" placeholder="Новый пароль (от 6 символов)"><input id="p2" type="password" class="${IN}" placeholder="Повторите новый пароль"><div id="pe" class="text-red-400 text-sm"></div><button class="${BTN} w-full" onclick="savePass()">Сохранить пароль</button></div></div>`}
+async function savePass(){const a=$('#p0').value,b=$('#p1').value,c=$('#p2').value,e=m=>$('#pe').textContent=m;if(b.length<6)return e('Минимум 6 символов');if(b!==c)return e('Пароли не совпадают');
+ try{const u=auth.currentUser;await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,a));await u.updatePassword(b);closeM();alert('Пароль изменён')}catch(x){e(x.code==='auth/invalid-credential'||x.code==='auth/wrong-password'?'Текущий пароль неверный':'Ошибка: '+(x.message||x))}}
 function tblData(){const t=$('#view table');if(!t)return null;const H=[...t.querySelectorAll('thead th')].map(x=>x.textContent.trim()),k=H.map(h=>h!==''),R=[...t.querySelectorAll('tbody tr')].map(r=>[...r.children].map(c=>[...c.childNodes].map(n=>n.textContent).join(' ').replace(/\s+/g,' ').trim())).filter(r=>r.length===H.length);
  if(!R.length){alert('В таблице нет данных для экспорта');return null}const f=r=>r.filter((_,i)=>k[i]);
  const title=TABS().find(x=>x[0]===tab)[1],d=new Date().toLocaleDateString('ru-RU');return{title,d,H:f(H),R:R.map(f),name:(S.project+'_'+title+'_'+iso(new Date())).replace(/[\\/:*?"<>|«»\s]+/g,'_')}}
@@ -360,8 +370,7 @@ function exportPDF(){const D=tblData();if(!D)return;const fr=document.createElem
  fr.srcdoc=`<html><head><meta charset="utf-8"><title>${esc(D.name)}</title><style>@page{size:A4 landscape;margin:12mm}body{font:12px Arial,sans-serif;color:#111}h1{font-size:18px;margin:0}p{margin:2px 0 12px;color:#555}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:5px 7px;text-align:left}th{background:#e8eefc}tr:nth-child(even) td{background:#f7f7f7}</style></head><body><h1>${esc(S.company)} — ${esc(S.project)}</h1><p>${esc(D.title)} · ${D.d} · валюта: ${cur==='USD'?'USD ($)':'TJS (c.)'} · сформировал: ${esc(me.name)}</p><table><thead><tr>${D.H.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${D.R.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
  runFrame(fr)}
 const closeM=()=>$('#modal').innerHTML='';
-
 // ---------- старт ----------
 (()=>{try{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');x.fillStyle='#2563eb';x.fillRect(0,0,180,180);x.fillStyle='#fff';x.fillRect(58,36,64,108);x.fillStyle='#2563eb';for(let r=0;r<5;r++)for(let k=0;k<3;k++)x.fillRect(68+k*19,46+r*19,10,10);const u=c.toDataURL('image/png');['apple-touch-icon','icon'].forEach(rel=>{const l=document.createElement('link');l.rel=rel;l.href=u;document.head.appendChild(l)})}catch(e){}})();
-(()=>{const l=localStorage.getItem(LS+'sess')||sessionStorage.getItem(LS+'sess');me=users.find(u=>u.login===l)||null;draw()})();
+showLoading('Загрузка…');
 </script></body></html>
