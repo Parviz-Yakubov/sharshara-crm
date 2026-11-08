@@ -227,8 +227,8 @@ async function docPKO(p,a,lang){const X=getPK(lang),R=getReq(),o=dxCfg(),s=Math.
   +line(X.from,who)+line(X.base,base)+line(X.w,words)+dxP(r(X.att),{before:100,bb:true})+sig;
  const right=dxP(r(org,{b:true}),{bb:true})+dxP(r(X.org,{sz:s-4}),{jc:'center'})+dxP(r(X.rcT,{b:true,sz:o.sz+4}),{jc:'center',before:160})+dxP(r(X.rc2+' ')+r(no,{hl:false}),{jc:'center',after:100})
   +line(X.from,who)+line(X.base,base)+line(X.w,words)+line(X.sum,num+' '+cu)+line(X.d,dt)+dxP(r(X.mp),{before:200})+sig;
- const dash='<w:tcBorders><w:right w:val="dashed" w:sz="8" w:space="0" w:color="666666"/></w:tcBorders>';
- const body=dxTbl([[dxCell(left+dxP(''),{borders:dash}),dxCell(right+dxP(''))]],[6150,4622],{pad:60});
+ const cut=dxCell(dxP(r('л и н и я   о т р е з а',{sz:16}),{jc:'center'}),{borders:'<w:textDirection w:val="btLr"/>',va:'center'});
+ const body=dxTbl([[dxCell(left+dxP('')),cut,dxCell(right+dxP(''))]],[5900,500,4372],{pad:60,border:true});
  return dxSave(body,dxName('ПКО',a,'№'+no+'_'),false,true)}
 
 function printDoc(n,full){if(!can('print'))return;const a=apts.find(x=>x.n===n);if(full){const miss=[['pass','серия и номер паспорта'],['porg','кем выдан паспорт'],['pidate','дата выдачи паспорта'],['inn','ИНН'],['addr','адрес проживания']].filter(([k])=>!(k==='porg'?(a.porg||a.pissue):a[k])).map(x=>x[1]);if(miss.length&&!confirm('В карточке квартиры не заполнено: '+miss.join(', ')+'.\nВ договоре на этих местах будут пустые строки. Всё равно печатать?'))return}const lang=($('#pl')&&$('#pl').value)||S.pl||'tg',X=getTX(lang),b={...a,start:a.start||iso(new Date())},L=dues(b).filter(x=>x.amt>0),sale=(me.pos?me.pos+' ':'')+me.name,F=lang==='tg'?(f=>f<0?'таҳхона':'ошёнаи '+f):FL,cn=a.n+'/'+new Date(b.start+'T00:00:00').getFullYear();
